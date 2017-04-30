@@ -28,7 +28,7 @@ def pol2cart(theta, rho):
     :param rho: radius value
     :return: X, Y
     """
-    return rho * m.cos(theta), rho * m.sin(theta)
+    return rho * m.cos(theta), rho * m.sin(theta) # X = r*cos; Y = r
 
 
 def augment_EEG(data, stdMult, pca=False, n_components=2):
