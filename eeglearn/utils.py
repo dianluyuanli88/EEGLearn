@@ -3,7 +3,7 @@ __author__ = 'Pouya Bashivan'
 import math as m
 import numpy as np
 np.random.seed(123)
-import scipy.io
+import scipy.io #  read and save .mat file
 from sklearn.decomposition import PCA
 
 def cart2sph(x, y, z):
