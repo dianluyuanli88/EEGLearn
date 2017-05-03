@@ -139,7 +139,7 @@ def build_cnn(input_var=None, w_init=None, n_layers=(4, 2, 1), n_filters_first=3
         network = MaxPool2DLayer(network, pool_size=(2, 2))
     return network, weights
 
-
+'''
 def build_convpool_max(input_vars, nb_classes, imsize=32, n_colors=3, n_timewin=3):
     """
     Builds the complete network with maxpooling layer in time.
@@ -292,6 +292,7 @@ def build_convpool_mix(input_vars, nb_classes, grad_clip=110, imsize=32, n_color
             num_units=nb_classes, nonlinearity=lasagne.nonlinearities.softmax)
     return convpool
 
+'''
 
 def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
     """
@@ -337,6 +338,8 @@ def train(images, labels, fold, model_type, batch_size=32, num_epochs=5):
     """
     num_classes = len(np.unique(labels))
     (X_train, y_train), (X_val, y_val), (X_test, y_test) = reformatInput(images, labels, fold)
+    # reformatInput: Receives the the indices for train and test datasets and
+    # Outputs the train, validation, and test data and label datasets
     X_train = X_train.astype("float32", casting='unsafe')
     X_val = X_val.astype("float32", casting='unsafe')
     X_test = X_test.astype("float32", casting='unsafe')
