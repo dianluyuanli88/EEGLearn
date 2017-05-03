@@ -471,6 +471,8 @@ if __name__ == '__main__':
     print('Generating images...')
     # Find the average response over time windows
     av_feats = reduce(lambda x, y: x+y, [feats[:, i*192:(i+1)*192] for i in range(feats.shape[1] / 192)])
+    # about ‘reduce’ function--http://jeffxie.blog.51cto.com/1365360/328207
+    
     av_feats = av_feats / (feats.shape[1] / 192)
     images = gen_images(np.array(locs_2d),
                                   av_feats,
