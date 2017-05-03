@@ -360,6 +360,8 @@ def train(images, labels, fold, model_type, batch_size=32, num_epochs=5):
     elif model_type == 'cnn':
         input_var = T.tensor4('inputs')
         network, _ = build_cnn(input_var)
+        
+        
         network = DenseLayer(lasagne.layers.dropout(network, p=.5),
                              num_units=256,
                              nonlinearity=lasagne.nonlinearities.rectify)
@@ -484,8 +486,9 @@ if __name__ == '__main__':
 
     # Class labels should start from 0
     print('Training the CNN Model...')
-    train(images, np.squeeze(feats[:, -1]) - 1, fold_pairs[2], 'cnn')
-
+    train(images, np.squeeze(feats[:, -1]) - 1, fold_pairs[2], 'cnn') # here, images = gen_images(...) 482th row
+    
+'''
     # Conv-LSTM Mode
     print('Generating images for all time windows...')
     images_timewin = np.array([gen_images(np.array(locs_2d),
@@ -495,5 +498,6 @@ if __name__ == '__main__':
     print('\n')
     print('Training the LSTM-CONV Model...')
     train(images_timewin, np.squeeze(feats[:, -1]) - 1, fold_pairs[2], 'mix')
+'''
 
     print('Done!')
