@@ -133,7 +133,7 @@ def build_cnn(input_var=None, w_init=None, n_layers=(4, 2, 1), n_filters_first=3
     # Input layer
     network = InputLayer(shape=(None, n_colors, imsize, imsize),
                                         input_var=input_var)
-    for i, s in enumerate(n_layers):
+    for i, s in enumerate(n_layers):      # execute conv (4 2 1) and maxpool
         for l in range(s):
             network = Conv2DLayer(network, num_filters=n_filters_first * (2 ** i), filter_size=(3, 3),
                           W=w_init[count], pad='same')
