@@ -126,6 +126,8 @@ def build_cnn(input_var=None, w_init=None, n_layers=(4, 2, 1), n_filters_first=3
     weights = []        # Keeps the weights for all layers
     count = 0
     # If no initial weight is given, initialize with GlorotUniform
+    # Glorot正态分布初始化方法，也称作Xavier正态分布初始化，参数由0均值，
+    # 标准差为sqrt(2 / (fan_in + fan_out))的正态分布产生，其中fan_in和fan_out是权重张量的扇入扇出（即输入和输出单元数目）
     if w_init is None:
         w_init = [lasagne.init.GlorotUniform()] * sum(n_layers)
     # Input layer
