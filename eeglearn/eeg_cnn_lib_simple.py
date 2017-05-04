@@ -321,10 +321,10 @@ if __name__ == '__main__':
     # CNN Mode
     print('Generating images...')
     # Find the average response over time windows
-    av_feats = reduce(lambda x, y: x+y, [feats[:, i*192:(i+1)*192] for i in range(feats.shape[1] / 192)])
+    av_feats = reduce(lambda x, y: x+y, [feats[:, i*96:(i+1)*96] for i in range(feats.shape[1] / 96)])
     # about ‘reduce’ function--http://jeffxie.blog.51cto.com/1365360/328207
     
-    av_feats = av_feats / (feats.shape[1] / 192)
+    av_feats = av_feats / (feats.shape[1] / 96)
     images = gen_images(np.array(locs_2d),
                                   av_feats,
                                   32, normalize=False)
