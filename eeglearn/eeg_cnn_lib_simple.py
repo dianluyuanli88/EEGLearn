@@ -44,6 +44,7 @@ def gen_images(locs, features, n_gridpoints, normalize=True,
 
     :param locs: An array with shape [n_electrodes, 2] containing X, Y
                         coordinates for each electrode.
+                        locs --- 2 D!
     :param features: Feature matrix as [n_samples, n_features]
                                 Features are as columns.
                                 Features corresponding to each frequency band are concatenated.
@@ -138,161 +139,6 @@ def build_cnn(input_var=None, w_init=None, n_layers=(4, 2, 1), n_filters_first=3
             weights.append(network.W)
         network = MaxPool2DLayer(network, pool_size=(2, 2))
     return network, weights
-
-'''
-def build_convpool_max(input_vars, nb_classes, imsize=32, n_colors=3, n_timewin=3):
-    """
-    Builds the complete network with maxpooling layer in time.
-
-    :param input_vars: list of EEG images (one image per time window)
-    :param nb_classes: number of classes
-    :param imsize: size of the input image (assumes a square input)
-    :param n_colors: number of color channels in the image
-    :param n_timewin: number of time windows in the snippet
-    :return: a pointer to the output of last layer
-    """
-    convnets = []
-    w_init = None
-    # Build 7 parallel CNNs with shared weights
-    for i in range(n_timewin):
-        if i == 0:
-            convnet, w_init = build_cnn(input_vars[i], imsize=imsize, n_colors=n_colors)
-        else:
-            convnet, _ = build_cnn(input_vars[i], w_init=w_init, imsize=imsize, n_colors=n_colors)
-        convnets.append(convnet)
-    # convpooling using Max pooling over frames
-    convpool = ElemwiseMergeLayer(convnets, theano.tensor.maximum)
-    # A fully-connected layer of 512 units with 50% dropout on its inputs:
-    convpool = DenseLayer(lasagne.layers.dropout(convpool, p=.5),
-            num_units=512, nonlinearity=lasagne.nonlinearities.rectify)
-    # And, finally, the output layer with 50% dropout on its inputs:
-    convpool = lasagne.layers.DenseLayer(lasagne.layers.dropout(convpool, p=.5),
-            num_units=nb_classes, nonlinearity=lasagne.nonlinearities.softmax)
-    return convpool
-
-
-def build_convpool_conv1d(input_vars, nb_classes, imsize=32, n_colors=3, n_timewin=3):
-    """
-    Builds the complete network with 1D-conv layer to integrate time from sequences of EEG images.
-
-    :param input_vars: list of EEG images (one image per time window)
-    :param nb_classes: number of classes
-    :param imsize: size of the input image (assumes a square input)
-    :param n_colors: number of color channels in the image
-    :param n_timewin: number of time windows in the snippet
-    :return: a pointer to the output of last layer
-    """
-    convnets = []
-    w_init = None
-    # Build 7 parallel CNNs with shared weights
-    for i in range(n_timewin):
-        if i == 0:
-            convnet, w_init = build_cnn(input_vars[i], imsize=imsize, n_colors=n_colors)
-        else:
-            convnet, _ = build_cnn(input_vars[i], w_init=w_init, imsize=imsize, n_colors=n_colors)
-        convnets.append(FlattenLayer(convnet))
-    # at this point convnets shape is [numTimeWin][n_samples, features]
-    # we want the shape to be [n_samples, features, numTimeWin]
-    convpool = ConcatLayer(convnets)
-    convpool = ReshapeLayer(convpool, ([0], n_timewin, get_output_shape(convnets[0])[1]))
-    convpool = DimshuffleLayer(convpool, (0, 2, 1))
-    # input to 1D convlayer should be in (batch_size, num_input_channels, input_length)
-    convpool = Conv1DLayer(convpool, 64, 3)
-    # A fully-connected layer of 512 units with 50% dropout on its inputs:
-    convpool = DenseLayer(lasagne.layers.dropout(convpool, p=.5),
-            num_units=512, nonlinearity=lasagne.nonlinearities.rectify)
-    # And, finally, the output layer with 50% dropout on its inputs:
-    convpool = DenseLayer(lasagne.layers.dropout(convpool, p=.5),
-            num_units=nb_classes, nonlinearity=lasagne.nonlinearities.softmax)
-    return convpool
-
-
-def build_convpool_lstm(input_vars, nb_classes, grad_clip=110, imsize=32, n_colors=3, n_timewin=3):
-    """
-    Builds the complete network with LSTM layer to integrate time from sequences of EEG images.
-
-    :param input_vars: list of EEG images (one image per time window)
-    :param nb_classes: number of classes
-    :param grad_clip:  the gradient messages are clipped to the given value during
-                        the backward pass.
-    :param imsize: size of the input image (assumes a square input)
-    :param n_colors: number of color channels in the image
-    :param n_timewin: number of time windows in the snippet
-    :return: a pointer to the output of last layer
-    """
-    convnets = []
-    w_init = None
-    # Build 7 parallel CNNs with shared weights
-    for i in range(n_timewin):
-        if i == 0:
-            convnet, w_init = build_cnn(input_vars[i], imsize=imsize, n_colors=n_colors)
-        else:
-            convnet, _ = build_cnn(input_vars[i], w_init=w_init, imsize=imsize, n_colors=n_colors)
-        convnets.append(FlattenLayer(convnet))
-    # at this point convnets shape is [numTimeWin][n_samples, features]
-    # we want the shape to be [n_samples, features, numTimeWin]
-    convpool = ConcatLayer(convnets)
-    convpool = ReshapeLayer(convpool, ([0], n_timewin, get_output_shape(convnets[0])[1]))
-    # Input to LSTM should have the shape as (batch size, SEQ_LENGTH, num_features)
-    convpool = LSTMLayer(convpool, num_units=128, grad_clipping=grad_clip,
-        nonlinearity=lasagne.nonlinearities.tanh)
-    # We only need the final prediction, we isolate that quantity and feed it
-    # to the next layer.
-    convpool = SliceLayer(convpool, -1, 1)      # Selecting the last prediction
-    # A fully-connected layer of 256 units with 50% dropout on its inputs:
-    convpool = DenseLayer(lasagne.layers.dropout(convpool, p=.5),
-            num_units=256, nonlinearity=lasagne.nonlinearities.rectify)
-    # And, finally, the output layer with 50% dropout on its inputs:
-    convpool = DenseLayer(lasagne.layers.dropout(convpool, p=.5),
-            num_units=nb_classes, nonlinearity=lasagne.nonlinearities.softmax)
-    return convpool
-
-
-def build_convpool_mix(input_vars, nb_classes, grad_clip=110, imsize=32, n_colors=3, n_timewin=3):
-    """
-    Builds the complete network with LSTM and 1D-conv layers combined
-
-    :param input_vars: list of EEG images (one image per time window)
-    :param nb_classes: number of classes
-    :param grad_clip:  the gradient messages are clipped to the given value during
-                        the backward pass.
-    :param imsize: size of the input image (assumes a square input)
-    :param n_colors: number of color channels in the image
-    :param n_timewin: number of time windows in the snippet
-    :return: a pointer to the output of last layer
-    """
-    convnets = []
-    w_init = None
-    # Build 7 parallel CNNs with shared weights
-    for i in range(n_timewin):
-        if i == 0:
-            convnet, w_init = build_cnn(input_vars[i], imsize=imsize, n_colors=n_colors)
-        else:
-            convnet, _ = build_cnn(input_vars[i], w_init=w_init, imsize=imsize, n_colors=n_colors)
-        convnets.append(FlattenLayer(convnet))
-    # at this point convnets shape is [numTimeWin][n_samples, features]
-    # we want the shape to be [n_samples, features, numTimeWin]
-    convpool = ConcatLayer(convnets)
-    convpool = ReshapeLayer(convpool, ([0], n_timewin, get_output_shape(convnets[0])[1]))
-    reformConvpool = DimshuffleLayer(convpool, (0, 2, 1))
-    # input to 1D convlayer should be in (batch_size, num_input_channels, input_length)
-    conv_out = Conv1DLayer(reformConvpool, 64, 3)
-    conv_out = FlattenLayer(conv_out)
-    # Input to LSTM should have the shape as (batch size, SEQ_LENGTH, num_features)
-    lstm = LSTMLayer(convpool, num_units=128, grad_clipping=grad_clip,
-        nonlinearity=lasagne.nonlinearities.tanh)
-    lstm_out = SliceLayer(lstm, -1, 1)
-    # Merge 1D-Conv and LSTM outputs
-    dense_input = ConcatLayer([conv_out, lstm_out])
-    # A fully-connected layer of 256 units with 50% dropout on its inputs:
-    convpool = DenseLayer(lasagne.layers.dropout(dense_input, p=.5),
-            num_units=512, nonlinearity=lasagne.nonlinearities.rectify)
-    # And, finally, the 10-unit output layer with 50% dropout on its inputs:
-    convpool = DenseLayer(convpool,
-            num_units=nb_classes, nonlinearity=lasagne.nonlinearities.softmax)
-    return convpool
-
-'''
 
 def iterate_minibatches(inputs, targets, batchsize, shuffle=False):
     """
@@ -487,17 +333,5 @@ if __name__ == '__main__':
     # Class labels should start from 0
     print('Training the CNN Model...')
     train(images, np.squeeze(feats[:, -1]) - 1, fold_pairs[2], 'cnn') # here, images = gen_images(...) 482th row
-    
-'''
-    # Conv-LSTM Mode
-    print('Generating images for all time windows...')
-    images_timewin = np.array([gen_images(np.array(locs_2d),
-                                                    feats[:, i * 192:(i + 1) * 192], 32, normalize=False) for i in
-                                         range(feats.shape[1] / 192)
-                                         ])
-    print('\n')
-    print('Training the LSTM-CONV Model...')
-    train(images_timewin, np.squeeze(feats[:, -1]) - 1, fold_pairs[2], 'mix')
-'''
 
     print('Done!')
